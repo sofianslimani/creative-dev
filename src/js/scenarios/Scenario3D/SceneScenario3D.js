@@ -1,206 +1,229 @@
-import * as THREE from "three"
-import Scene3D from "../../canvas-3d-threejs/Scene3D"
-import { randomRange } from "../../utils/MathUtils"
-import { Bodies, Body, Composite, Engine, Runner } from "matter-js"
-import { clamp } from "three/src/math/MathUtils.js"
+import * as THREE from "three";
+import Scene3D from "../../canvas-3d-threejs/Scene3D";
+import { Bodies, Body, Composite, Engine, Runner } from "matter-js";
+import { randomRange } from "../../utils/MathUtils";
 
-class Bubble extends THREE.Mesh {
-    constructor(radius, color) {
-        super()
-        // this.geometry = new THREE.SphereGeometry(radius)
-        this.geometry = new THREE.BoxGeometry(2 * radius, 2 * radius, 2 * radius)
-        this.material = new THREE.MeshBasicMaterial({ color: new THREE.Color(color) })
+class TestSquareBubbles extends THREE.Mesh {
+  constructor(radius, color) {
+    // const geometry_ = new THREE.SphereGeometry(radius)
+    const geometry_ = new THREE.BoxGeometry(2 * radius, 2 * radius, 2 * radius); // temporary to test rotation
+    const material_ = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(color),
+    });
+    super(geometry_, material_);
+    this.radius = radius;
 
-        /** body */
-        // this.body = Bodies.circle(0, 0, radius)
-        this.body = Bodies.rectangle(0, 0, 2 * radius, 2 * radius)
-    }
+    /** body */
+    // this.body = Bodies.circle(0, 0, radius)
+    this.body = Bodies.rectangle(0, 0, 2 * radius, 2 * radius); // temporary to test rotation
+  }
 
-    setPosition(x, y) {
-        /** threejs */
-        this.position.set(x, y, 0)
+  setPosition(x, y) {
+    this.position.set(x, y, 0);
+    Body.setPosition(this.body, { x: x, y: -y }); // !! reverse sign
+  }
 
-        /** matter js */
-        Body.setPosition(this.body, { x: x, y: -y }) // !! sign
-    }
-
-    update() {
-        this.position.x = this.body.position.x
-        this.position.y = -this.body.position.y
-        this.rotation.z = -this.body.angle
-    }
+  update() {
+    this.position.x = this.body.position.x;
+    this.position.y = -this.body.position.y; // !! reverse sign
+    this.rotation.z = -this.body.angle; // !! reverse sign
+  }
 }
 
 class Wall extends THREE.Mesh {
-    constructor(color) {
-        const geometry = new THREE.BoxGeometry(1, 1, 1)
-        const material = new THREE.MeshBasicMaterial({ color: new THREE.Color(color) })
-        super(geometry, material)
+  constructor(color) {
+    const geometry_ = new THREE.BoxGeometry(1, 1, 1);
+    const material_ = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(color),
+    });
+    super(geometry_, material_);
 
-        this.depth = 1
+    this.depth = 1; // store and expose wall depth
 
-        /** body */
-        this.body = Bodies.rectangle(0, 0, 1, 1, { isStatic: true })
-    }
+    /** body */
+    this.body = Bodies.rectangle(0, 0, 1, 1, { isStatic: true });
+  }
 
-    setSize(width, height) {
-        const oldScaleX_ = this.scale.x
-        const oldScaleY_ = this.scale.y
-        Body.scale(this.body, width / oldScaleX_, height / oldScaleY_)
-        this.scale.set(width, height, this.depth)
-    }
+  setSize(width, height) {
+    /** body */
+    Body.scale(this.body, 1 / this.scale.x, 1 / this.scale.y); // unscale to (1, 1)
+    Body.scale(this.body, width, height); // scale to new dimension
 
-    setPosition(x, y) {
-        /** threejs */
-        this.position.set(x, y, 0)
+    /** geometry */
+    this.scale.set(width, height, this.depth);
+  }
 
-        /** matter js */
-        Body.setPosition(this.body, { x: x, y: -y }) // !! sign
-    }
+  setPosition(x, y) {
+    this.position.set(x, y, 0);
+    Body.setPosition(this.body, { x: x, y: -y }); // !! sign y
+  }
 }
 
-export default class SceneScenario3D extends Scene3D {
-    constructor(id = "canvas-scene", nBubbles = 10) {
-        super(id)
+export default class Scenario3d extends Scene3D {
+  constructor(nBubble, id = "canvas-scene") {
+    super(id);
 
-        /** change default camera -> orthographic camera */
-        this.camera = new THREE.OrthographicCamera(
-            -this.width / 2, this.width / 2,
-            this.height / 2, -this.height / 2
+    /** orthographic camera */
+    this.camera = new THREE.OrthographicCamera(
+      -this.width / 2,
+      this.width / 2,
+      this.height / 2,
+      -this.height / 2,
+      0.1,
+      200
+    );
+    this.camera.position.z = 100;
+
+    /** bubble */
+    this.radius = 20;
+    this.bubbles = [];
+    this.colors = ["red", "yellow", "blue"];
+    for (let i = 0; i < nBubble; i++) {
+      const bubble_ = new TestSquareBubbles(
+        this.radius,
+        this.colors[i % this.colors.length]
+      );
+      bubble_.setPosition(
+        randomRange(
+          -this.width / 2 + this.radius,
+          this.width / 2 - this.radius
+        ),
+        randomRange(
+          -this.height / 2 + this.radius,
+          this.height / 2 - this.radius
         )
-        this.camera.position.z = 100
-
-        /** wall */
-        this.wallLeft = new Wall('blue')
-        // this.wallTop = new Wall('yellow')
-        this.wallRight = new Wall('blue')
-        // this.wallBottom = new Wall('yellow')
-        this.add(this.wallLeft)
-        // this.add(this.wallTop)
-        this.add(this.wallRight)
-        // this.add(this.wallBottom)
-
-        this.wallLeft.depth = 100
-        // this.wallTop.depth = 100
-        this.wallRight.depth = 100
-        // this.wallBottom.depth = 100
-
-        /** bubbles */
-        this.bubbles = []
-        const radius_ = 20
-        const colors = ['red', 'blue', 'yellow']
-        for (let i = 0; i < nBubbles; i++) {
-            const bubble_ = new Bubble(radius_, colors[i % colors.length])
-            const x_ = randomRange(-this.width / 2, this.width / 2)
-            const y_ = randomRange(-this.height / 2, this.height / 2)
-            bubble_.setPosition(x_, y_)
-            this.add(bubble_)
-            this.bubbles.push(bubble_)
-        }
-
-        /** physics engine */
-        this.bodies = [
-            this.wallLeft.body,
-            // this.wallTop.body,
-            this.wallRight.body
-            // this.wallBottom.body
-        ]
-        this.bubbles.forEach(b => this.bodies.push(b.body))
-        this.engine = Engine.create({ render: { visible: false } })
-        Composite.add(this.engine.world, this.bodies)
-        this.runner = Runner.create()
-        Runner.run(this.runner, this.engine)
-        console.log(this.engine.gravity) // default
-        this.engine.gravity.scale *= 3
-
-        /** device motion */
-        this.windowContext.useDeviceAcceration = true
-        this.acceleration = this.windowContext.acceleration
-
-        /** init */
-        this.resize()
+      );
+      this.bubbles.push(bubble_);
+      this.scene.add(bubble_);
     }
 
-    addBubble(x, y) {
-        // to do
+    /** walls */
+    this.wallLeft = new Wall("blue"); // left
+    this.wallRight = new Wall("blue"); // right
 
-        // !! update Composite
+    const wallDepth_ = 2 * this.radius;
+    this.wallLeft.depth = wallDepth_;
+    this.wallRight.depth = wallDepth_;
+
+    this.scene.add(this.wallLeft);
+    this.scene.add(this.wallRight);
+
+    /** maze */
+    this.wallMaze1 = new Wall("white");
+    this.wallMaze1.depth = wallDepth_;
+    this.wallMaze2 = new Wall("white");
+    this.wallMaze2.depth = wallDepth_;
+
+    this.scene.add(this.wallMaze1);
+    this.scene.add(this.wallMaze2);
+
+    /** physics engine */
+    this.engine = Engine.create({ render: { visible: false } });
+    this.bodies = [
+      this.wallLeft.body,
+      this.wallRight.body,
+      this.wallMaze1.body,
+      this.wallMaze2.body,
+    ];
+    this.bubbles.forEach((b) => this.bodies.push(b.body));
+    Composite.add(this.engine.world, this.bodies);
+    this.runner = Runner.create();
+    Runner.run(this.runner, this.engine);
+
+    /** device motion */
+    this.windowContext.useDeviceAcceleration = true;
+    this.acceleration = this.windowContext.acceleration;
+    this.engine.gravity.scale *= 5; // optional, to fit scenario
+
+    /** init */
+    this.resize();
+  }
+
+  update() {
+    if (!super.update()) return;
+    this.bubbles.forEach((b) => {
+      b.update();
+    });
+  }
+
+  addBubble(x, y) {
+    const bubble_ = new TestSquareBubbles(
+      this.radius,
+      this.colors[Math.floor(this.colors.length * Math.random())]
+    );
+    bubble_.setPosition(x, y);
+    this.bubbles.push(bubble_);
+    this.scene.add(bubble_);
+    Composite.add(this.engine.world, bubble_.body);
+  }
+
+  removeBubble(bubble) {
+    /** remove from threejs */
+    bubble.geometry.dispose();
+    bubble.material.dispose();
+    bubble.removeFromParent();
+
+    /** remove from matterjs */
+    Composite.remove(this.engine.world, bubble.body);
+
+    /** remove from array */
+    this.bubbles = this.bubbles.filter((b) => {
+      return b !== bubble;
+    }); // remove
+  }
+
+  /*
+    onDeviceOrientation() {
+        const orientationAngle_ = Math.atan2(this.orientation.beta, this.orientation.gamma)
+        this.engine.gravity.x = Math.cos(orientationAngle_)
+        this.engine.gravity.y = Math.sin(orientationAngle_)
     }
+    */
 
-    removeBubble(bubble) {
-        bubble.geometry.dispose()
-        bubble.material.dispose()
-        bubble.removeFromParent()
+  onDeviceAcceleration() {
+    /** debug */
+    let coordinates_ = "";
+    coordinates_ = coordinates_.concat(
+      this.acceleration.x.toFixed(2),
+      ", ",
+      this.acceleration.y.toFixed(2)
+    );
+    this.debug.domDebug = coordinates_;
 
-        // remove from physics engine = update Composite
+    /** update engine gravity */
+    this.engine.gravity.x = this.acceleration.x / 9.81; // !! sign
+    this.engine.gravity.y = -this.acceleration.y / 9.81;
+  }
 
-        // remove from this.bubbles
+  resize() {
+    super.resize();
+    /** camera */
+    this.camera.left = -this.width / 2;
+    this.camera.right = this.width / 2;
+    this.camera.top = this.height / 2;
+    this.camera.bottom = -this.height / 2;
 
+    /** physics */
+    if (!!this.wallLeft) {
+      const wallThickness_ = 15;
+
+      /** border */
+      this.wallLeft.setSize(wallThickness_, this.height * 2);
+      this.wallLeft.setPosition(-this.width / 2 - wallThickness_ / 2, 0);
+
+      this.wallRight.setSize(wallThickness_, this.height * 2);
+      this.wallRight.setPosition(this.width / 2 + wallThickness_ / 2, 0);
+
+      /** maze */
+      const width_ = (this.width * 2) / 3;
+      const offsetX_ = (this.width * 1) / 3 / 2;
+      const offsetY_ = this.height / 6;
+
+      this.wallMaze1.setSize(width_, wallThickness_);
+      this.wallMaze1.setPosition(-offsetX_, offsetY_);
+
+      this.wallMaze2.setSize(width_, wallThickness_);
+      this.wallMaze2.setPosition(offsetX_, -offsetY_);
     }
-
-    update() {
-        super.update()
-
-        if (!!this.bubbles) {
-            this.bubbles.forEach(b => b.update())
-        }
-    }
-
-    // onDeviceOrientation() {
-    //      /** gravity orientation */
-    //     let gx_ = this.orientation.gamma / 90 // -1 : 1
-    //     let gy_ = this.orientation.beta / 90 // -1 : 1
-    //     gx_ = clamp(gx_, -1, 1)
-    //     gy_ = clamp(gy_, -1, 1)
-
-    //     /** debug */
-    //     let coordinates_ = ""
-    //     coordinates_ = coordinates_.concat(gx_.toFixed(2), ", ", gy_.toFixed(2))
-    //     this.debug.domDebug = coordinates_
-
-    //     /** update */
-    //     this.engine.gravity.x = gx_
-    //     this.engine.gravity.y = gy_
-    // }
-
-    onDeviceAcceleration() {
-        /** debug */
-        let coordinates_ = ""
-        coordinates_ = coordinates_.concat(
-            this.acceleration.x.toFixed(2), ", ",
-            this.acceleration.y.toFixed(2), ", ",
-            this.acceleration.z.toFixed(2)
-        )
-        this.debug.domDebug = coordinates_
-
-        /** update */
-        this.engine.gravity.x = -this.acceleration.x / 9.81
-        this.engine.gravity.y = this.acceleration.y / 9.81
-        // this.engine.gravity.scale
-    }
-
-    resize() {
-        super.resize()
-
-        this.camera.left = -this.width / 2
-        this.camera.right = this.width / 2
-        this.camera.top = this.height / 2
-        this.camera.bottom = - this.height / 2
-
-        if (!!this.wallLeft) {
-            const thickness_ = 10
-
-            /** walls sizes */
-            this.wallLeft.setSize(thickness_, this.height)
-            // this.wallTop.setSize(this.width - 2 * thickness_, thickness_)
-            this.wallRight.setSize(thickness_, this.height)
-            // this.wallBottom.setSize(this.width - 2 * thickness_, thickness_)
-
-            /** walls position */
-            this.wallLeft.setPosition(-this.width / 2 + thickness_ / 2, 0)
-            // this.wallTop.setPosition(0, this.height / 2 - thickness_ / 2)
-            this.wallRight.setPosition(this.width / 2 - thickness_ / 2, 0)
-            // this.wallBottom.setPosition(0, -this.height / 2 + thickness_ / 2)
-        }
-    }
+  }
 }

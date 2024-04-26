@@ -1,4 +1,4 @@
-import { Debug } from "./utils/Debug";
+import Debug from "./utils/Debug";
 import Time from "./utils/Time";
 import DeviceAcceleration from "./utils/device/DeviceAcceleration";
 import DeviceOrientation from "./utils/device/DeviceOrientation";
@@ -14,10 +14,18 @@ export default class WindowContext {
     this.scenes = [];
 
     /** events */
-    window.addEventListener("resize", () => this.resize());
-    window.addEventListener("scroll", () => this.scroll());
+    window.addEventListener("resize", () => {
+      this.resize();
+    });
+    window.addEventListener("scroll", () => {
+      this.scroll();
+    });
+
+    /** time */
     this.time = new Time();
-    this.time.on("update", () => this.update());
+    this.time.on("update", () => {
+      this.update();
+    });
 
     /** debug */
     this.debug = new Debug();
@@ -33,17 +41,14 @@ export default class WindowContext {
     });
   }
   resize() {
-    this.scenes.forEach((s) => s.resize());
+    this.scenes.forEach((s) => {
+      s.resize();
+    });
   }
   scroll() {
-    this.scenes.forEach((s) => s.scroll());
-  }
-  destroy() {
-    this.scenes.forEach((s) => s.destroy());
-    window.removeEventListener("resize", () => this.resize());
-    window.removeEventListener("scroll", () => this.scroll());
-    this.time.off("update");
-    if (this.debug.active) this.debug.ui.destroy();
+    this.scenes.forEach((s) => {
+      s.scroll();
+    });
   }
 
   get size() {
@@ -54,30 +59,64 @@ export default class WindowContext {
     };
   }
 
+  get scrollPositon() {
+    return {
+      x: window.scrollX,
+      y: window.scrollY,
+    };
+  }
+
   /**
    * DEVICE MOTION
    */
   set useDeviceOrientation(isTrigger) {
     if (isTrigger && !!!this.orientation) {
       this.orientation = new DeviceOrientation();
-      this.orientation.on("reading", () => this.onDeviceOrientation());
+      this.orientation.on("reading", () => {
+        this.onDeviceOrientation();
+      });
     }
     if (!isTrigger && !!this.orientation) this.orientation.off("reading");
   }
 
   onDeviceOrientation() {
-    this.scenes.forEach((s) => s.onDeviceOrientation());
+    this.scenes.forEach((s) => {
+      s.onDeviceOrientation();
+    });
   }
 
-  set useDeviceAcceration(isTrigger) {
+  set useDeviceAcceleration(isTrigger) {
     if (isTrigger && !!!this.acceleration) {
       this.acceleration = new DeviceAcceleration();
-      this.acceleration.on("reading", () => this.onDeviceAcceleration());
+      this.acceleration.on("reading", () => {
+        this.onDeviceAcceleration();
+      });
     }
     if (!isTrigger && !!this.acceleration) this.acceleration.off("reading");
   }
 
   onDeviceAcceleration() {
-    this.scenes.forEach((s) => s.onDeviceAcceleration());
+    this.scenes.forEach((s) => {
+      s.onDeviceAcceleration();
+    });
+  }
+
+  /**
+   * DESTROY
+   */
+  destroy() {
+    this.scenes.forEach((s) => {
+      s.destroy();
+    });
+    window.removeEventListener("resize", () => {
+      this.resize();
+    });
+    window.removeEventListener("scroll", () => {
+      this.scroll();
+    });
+    this.time.off("update");
+    this.useDeviceOrientation = false;
+    this.useDeviceAcceleration = false;
+    if (this.debug.active) this.debug.ui.destroy();
   }
 }

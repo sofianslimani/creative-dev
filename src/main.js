@@ -1,12 +1,18 @@
-import * as THREE from "three";
 import WindowContext from "./js/WindowContext";
-import SceneBouncingBubbles from "./js/scenarios/BouncingBubbles/SceneBouncingBubbles";
+import Scenario3d from "./js/scenarios/Scenario3D/SceneScenario3D";
+import SceneBoucingBubbles from "./js/scenarios/BouncingBubbles/SceneBouncingBubbles";
 import { askMotionAccess } from "./js/utils/device/DeviceAccess";
-import SceneScenario3D from "./js/scenarios/Scenario3D/SceneScenario3D";
+import { randomRange } from "./js/utils/MathUtils";
 
-/** device access */
-const btn = document.getElementById("btn-access");
-btn.addEventListener("click", askMotionAccess(), false);
+/** motion sensor autorization */
+const btnAccess = document.getElementById("btn-access");
+btnAccess.addEventListener(
+  "click",
+  function () {
+    askMotionAccess();
+  },
+  false
+);
 
 /** reload */
 const btnReload = document.getElementById("btn-reload");
@@ -18,46 +24,91 @@ btnReload.addEventListener(
   false
 );
 
-/** scenarios */
-const scene1 = new SceneBouncingBubbles(20);
-const scene2 = new SceneScenario3D("canvas-scene-3d");
-const scene3 = new SceneBouncingBubbles(10, "canvas-scene-2");
+/**
+ * SCENARIO
+ */
 
-const windowContext = new WindowContext();
-console.log(windowContext.scenes);
-const time = windowContext.time;
+/** scenes */
+const scene1 = new SceneBoucingBubbles(10);
+const scene2 = new Scenario3d(0, "canvas-scene-3d");
+const scene3 = new SceneBoucingBubbles(6, "canvas-scene-2");
 
+/** main */
 const update = () => {
-  /** example */
-  scene1.bubbles.forEach((b) => {
-    if (b.x < scene1.width / 2) {
-      b.radius = 20;
-    } else {
-      b.radius = 5;
-    }
+  /** scan bubbles */
+  const outScene1_up_ = scene1.bubbles.filter((b) => {
+    return b.y < -b.radius;
+  });
+  const outScene1_down_ = scene1.bubbles.filter((b) => {
+    return b.y > scene1.height + b.radius;
   });
 
-  /** 1 -> check des bulles dans les différents scénarios */
-  const outFromScene1 = scene1.bubbles.filter((b) => {
-    return b.x > scene1.width / 2;
-  }); // remove bubbles
-  const outFromScene2 = scene2.bubbles.filter((b) => {
-    return b.x > scene1.width / 2;
-  }); // remove bubbles
-
-  /** 2 -> mise à jour des scénarios */
-  outFromScene1.forEach((b) => {
-    // 1 - remove from scene 1 = update scene1.bubbles
-    // 2 - add to other scene => sceneX.addBubble
-    // b.vx
+  const outScene2_up_ = scene2.bubbles.filter((b) => {
+    return b.position.y > scene2.height / 2 + b.radius;
   });
-  outFromScene2.forEach((b) => {
-    // 1 - remove from scene 2 = removeBubble(b)
-    // 2 - add to other scene => sceneX.addBubble
-    // b.vx
+  const outScene2_down_ = scene2.bubbles.filter((b) => {
+    return b.position.y < -scene2.height / 2 - b.radius;
   });
 
-  console.log(outFromScene1);
+  const outScene3_up_ = scene3.bubbles.filter((b) => {
+    return b.y < -b.radius;
+  });
+  const outScene3_down_ = scene3.bubbles.filter((b) => {
+    return b.y > scene3.height + b.radius;
+  });
+
+  /** out scene 1 */
+  outScene1_up_.forEach((bubble) => {
+    scene1.bubbles = scene1.bubbles.filter((b) => {
+      return b !== bubble;
+    }); // remove
+    scene3.addBubble(
+      bubble.x,
+      scene3.height + bubble.radius - 1,
+      bubble.vx,
+      bubble.vy
+    ); // move to scene 3
+  });
+  outScene1_down_.forEach((bubble) => {
+    scene1.bubbles = scene1.bubbles.filter((b) => {
+      return b !== bubble;
+    }); // remove
+    scene2.addBubble(
+      bubble.x - scene2.width / 2,
+      scene2.height / 2 + bubble.radius - 1
+    ); // move to scene 2
+  });
+
+  /** out scene 2 */
+  outScene2_up_.forEach((bubble) => {
+    scene2.removeBubble(bubble);
+    scene1.addBubble(
+      bubble.position.x + scene2.width / 2,
+      scene1.height + bubble.radius - 10
+    ); // move to scene 1
+  });
+  outScene2_down_.forEach((bubble) => {
+    scene2.removeBubble(bubble);
+    scene3.addBubble(bubble.position.x + scene2.width / 2, -bubble.radius + 10); // move to scene 3
+  });
+
+  /** out scene 3 */
+  outScene3_up_.forEach((bubble) => {
+    scene3.bubbles = scene3.bubbles.filter((b) => {
+      return b !== bubble;
+    });
+    scene2.addBubble(
+      bubble.x - scene2.width / 2,
+      -scene1.height / 2 - bubble.radius + 1
+    ); // move to scene 2
+  });
+  outScene3_down_.forEach((bubble) => {
+    scene3.bubbles = scene3.bubbles.filter((b) => {
+      return b !== bubble;
+    }); // move to scene 1
+    scene1.addBubble(bubble.x, -bubble.radius + 1, bubble.vx, bubble.vy);
+  });
 };
-
+const windowContext = new WindowContext();
+const time = windowContext.time;
 time.on("update", update);

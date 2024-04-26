@@ -1,24 +1,25 @@
-import EventEmitter from "./events/EventEmitter"
+import EventEmitter from "./events/EventEmitter";
 
 export default class Time extends EventEmitter {
-    constructor() {
-        super()
-        this.start = Date.now()
-        this.current = this.start
-        this.elapsed = 0
-        this.delta = 16 // time elapsed between the last two frames
+  constructor() {
+    super();
 
-        this.update()
-    }
+    this.start = Date.now();
+    this.current = this.start;
+    this.elapsed = 0;
+    this.delta = 16; // time elapsed between the last two frames
 
-    update() {
-        const current_ = Date.now()
-        this.delta = current_ - this.current
-        this.current = current_
-        this.elapsed = this.current - this.start
+    this.update();
+  }
 
-        this.trigger('update')
+  update() {
+    const current_ = Date.now();
+    this.delta = current_ - this.current;
+    this.current = current_;
+    this.elapsed = this.current - this.start;
 
-        window.requestAnimationFrame(() => this.update())
-    }
+    this.trigger("update");
+
+    window.requestAnimationFrame(() => this.update());
+  }
 }
