@@ -5,7 +5,6 @@ import { randomRange } from "../../utils/MathUtils";
 
 class TestSquareBubbles extends THREE.Mesh {
   constructor(radius, color) {
-    // const geometry_ = new THREE.SphereGeometry(radius)
     const geometry_ = new THREE.BoxGeometry(2 * radius, 2 * radius, 2 * radius); // temporary to test rotation
     const material_ = new THREE.MeshBasicMaterial({
       color: new THREE.Color(color),
@@ -14,7 +13,6 @@ class TestSquareBubbles extends THREE.Mesh {
     this.radius = radius;
 
     /** body */
-    // this.body = Bodies.circle(0, 0, radius)
     this.body = Bodies.rectangle(0, 0, 2 * radius, 2 * radius); // temporary to test rotation
   }
 
@@ -133,7 +131,7 @@ export default class Scenario3d extends Scene3D {
     /** device motion */
     this.windowContext.useDeviceAcceleration = true;
     this.acceleration = this.windowContext.acceleration;
-    this.engine.gravity.scale *= 5; // optional, to fit scenario
+    this.engine.gravity.scale *= 5;
 
     /** init */
     this.resize();
@@ -171,14 +169,6 @@ export default class Scenario3d extends Scene3D {
       return b !== bubble;
     }); // remove
   }
-
-  /*
-    onDeviceOrientation() {
-        const orientationAngle_ = Math.atan2(this.orientation.beta, this.orientation.gamma)
-        this.engine.gravity.x = Math.cos(orientationAngle_)
-        this.engine.gravity.y = Math.sin(orientationAngle_)
-    }
-    */
 
   onDeviceAcceleration() {
     /** debug */
