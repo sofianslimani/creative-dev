@@ -5,6 +5,18 @@ export default class DomElement {
     this.setSize();
   }
 
+  setSize() {
+    const rect_ = this.element.getBoundingClientRect();
+    this.width = rect_.width;
+    this.height = rect_.height;
+    this.position = {
+      left: rect_.left,
+      top: rect_.top,
+      right: rect_.right,
+      bottom: rect_.bottom,
+    };
+  }
+
   get isVisible() {
     let isVisible_ = true;
     if (
@@ -19,19 +31,8 @@ export default class DomElement {
   }
 
   get aspectRatio() {
-    this.setSize();
-    return this.height !== 0 ? this.width / this.height : 1;
-  }
-
-  setSize() {
-    const rect_ = this.element.getBoundingClientRect();
-    this.width = rect_.width;
-    this.height = rect_.height;
-    this.position = {
-      left: rect_.left,
-      top: rect_.top,
-      right: rect_.right,
-      bottom: rect_.bottom,
-    };
+    let ratio_ = 1;
+    if (!!this.width && !!this.height) ratio_ = this.width / this.height;
+    return ratio_;
   }
 }

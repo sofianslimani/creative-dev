@@ -39,6 +39,8 @@ class Bubble {
     /** bounce */
     this.vx = this.x < this.radius ? Math.abs(this.vx) : this.vx;
     this.vx = this.x > width - this.radius ? -Math.abs(this.vx) : this.vx;
+    // this.vy = this.y < this.radius ? Math.abs(this.vy) : this.vy
+    // this.vy = this.y > height - this.radius ? -Math.abs(this.vy) : this.vy
   }
 }
 

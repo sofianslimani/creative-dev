@@ -4,15 +4,21 @@ import { Bodies, Body, Composite, Engine, Runner } from "matter-js";
 import { randomRange } from "../../utils/MathUtils";
 
 class TestSquareBubbles extends THREE.Mesh {
-  constructor(radius, color) {
-    const geometry_ = new THREE.BoxGeometry(2 * radius, 2 * radius, 2 * radius); // temporary to test rotation
-    const material_ = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(color),
+  constructor(radius, color, woodTexture) {
+    // const geometry_ = new THREE.SphereGeometry(radius)
+
+    const geometry = new THREE.BoxGeometry(2 * radius, 2 * radius, 2 * radius);
+    const material = new THREE.MeshStandardMaterial({
+      map: woodTexture,
+      roughness: 0.6,
+      bumpMap: woodTexture,
+      bumpScale: 0.02,
     });
-    super(geometry_, material_);
+    super(geometry, material);
     this.radius = radius;
 
     /** body */
+    // this.body = Bodies.circle(0, 0, radius)
     this.body = Bodies.rectangle(0, 0, 2 * radius, 2 * radius); // temporary to test rotation
   }
 
@@ -58,7 +64,7 @@ class Wall extends THREE.Mesh {
 }
 
 export default class Scenario3d extends Scene3D {
-  constructor(nBubble, id = "canvas-scene") {
+  constructor(nBubble, id = "canvas-scene", woodTexture) {
     super(id);
 
     /** orthographic camera */
@@ -72,6 +78,14 @@ export default class Scenario3d extends Scene3D {
     );
     this.camera.position.z = 100;
 
+    /** lighting */
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    this.scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    directionalLight.position.set(0, 50, 100);
+    this.scene.add(directionalLight);
+
     /** bubble */
     this.radius = 20;
     this.bubbles = [];
@@ -79,7 +93,8 @@ export default class Scenario3d extends Scene3D {
     for (let i = 0; i < nBubble; i++) {
       const bubble_ = new TestSquareBubbles(
         this.radius,
-        this.colors[i % this.colors.length]
+        this.colors[i % this.colors.length],
+        woodTexture
       );
       bubble_.setPosition(
         randomRange(
@@ -131,7 +146,7 @@ export default class Scenario3d extends Scene3D {
     /** device motion */
     this.windowContext.useDeviceAcceleration = true;
     this.acceleration = this.windowContext.acceleration;
-    this.engine.gravity.scale *= 5;
+    this.engine.gravity.scale *= 5; // optional, to fit scenario
 
     /** init */
     this.resize();
@@ -169,6 +184,14 @@ export default class Scenario3d extends Scene3D {
       return b !== bubble;
     }); // remove
   }
+
+  /*
+    onDeviceOrientation() {
+        const orientationAngle_ = Math.atan2(this.orientation.beta, this.orientation.gamma)
+        this.engine.gravity.x = Math.cos(orientationAngle_)
+        this.engine.gravity.y = Math.sin(orientationAngle_)
+    }
+    */
 
   onDeviceAcceleration() {
     /** debug */

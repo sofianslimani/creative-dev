@@ -11,7 +11,7 @@ export default class WindowContext {
     instanceWindowContext = this;
 
     /** scenes */
-    this.scenes = [];
+    this.sceneCollection = [];
 
     /** events */
     window.addEventListener("resize", () => {
@@ -32,21 +32,21 @@ export default class WindowContext {
   }
 
   addScene(scene) {
-    this.scenes.push(scene);
+    this.sceneCollection.push(scene);
   }
 
   update() {
-    this.scenes.forEach((s) => {
+    this.sceneCollection.forEach((s) => {
       if (s.isVisible) s.update();
     });
   }
   resize() {
-    this.scenes.forEach((s) => {
+    this.sceneCollection.forEach((s) => {
       s.resize();
     });
   }
   scroll() {
-    this.scenes.forEach((s) => {
+    this.sceneCollection.forEach((s) => {
       s.scroll();
     });
   }
@@ -55,7 +55,7 @@ export default class WindowContext {
     return {
       width: window.innerWidth,
       height: window.innerHeight,
-      pixelRatio: Math.min(window.devicePixelRatio, 2),
+      pixelRatio: Math.min(window.devicePixelRatio, 2), // no need to use > 2 (+ issues with low perf devices but high resolution screen)
     };
   }
 
@@ -80,7 +80,7 @@ export default class WindowContext {
   }
 
   onDeviceOrientation() {
-    this.scenes.forEach((s) => {
+    this.sceneCollection.forEach((s) => {
       s.onDeviceOrientation();
     });
   }
@@ -96,7 +96,7 @@ export default class WindowContext {
   }
 
   onDeviceAcceleration() {
-    this.scenes.forEach((s) => {
+    this.sceneCollection.forEach((s) => {
       s.onDeviceAcceleration();
     });
   }
@@ -105,7 +105,7 @@ export default class WindowContext {
    * DESTROY
    */
   destroy() {
-    this.scenes.forEach((s) => {
+    this.sceneCollection.forEach((s) => {
       s.destroy();
     });
     window.removeEventListener("resize", () => {
